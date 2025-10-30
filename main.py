@@ -1,19 +1,9 @@
-from google.colab import drive
-drive.mount('/content/drive/')
-
-%cd /content/drive/MyDrive/ICT_프로젝트
-
 import os
-from google.colab import userdata
-
-os.environ['OPENAI_API_KEY'] = userdata.get('ssu')
-os.environ['TAVILY_API_KEY'] = userdata.get('tavily')
-os.environ['NAVER_CLIENT_ID'] = userdata.get('naver_client_id')
-os.environ['NAVER_CLIENT_SECRET'] = userdata.get('naver_client_secret')
-os.environ['NEWS_API_KEY'] = userdata.get('news_api_key')
-
 import json
+import pprint
 from datetime import datetime, timedelta
+from typing import TypedDict, List, Dict, Any, Optional, Annotated, Type, Literal
+import operator
 
 # OpenAI & LangChain
 from langchain_openai import ChatOpenAI
@@ -22,8 +12,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 
 # LangChain Community Tools & Loaders
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_community.tools import ArxivQueryRun, TavilySearchResults
+# (17줄의 'tavily_search'는 18줄의 'tools'에 포함되므로 삭제)
+from langchain_community.tools import ArxivQueryRun, TavilySearchResults 
 from langchain_community.document_loaders import ArxivLoader
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -31,25 +21,28 @@ from pydantic import BaseModel, Field
 # LangGraph
 from langgraph.graph import StateGraph, END
 
-# Typing
-from typing import TypedDict, List, Dict, Any, Optional, Annotated, Type, Literal
-import operator
-
-# Tools
-from tools import analyze_video_content, search_naver_news, search_global_news, search_arxiv_papers, tavily_web_search, find_videos_with_transcripts, analyze_youtube_topic
-
-# Prompt
-from prompts import INTENT_CLASSIFIER_PROMPT, USER_PROFILING_PROMPT, DOMESTIC_JOB_ANALYSIS_PROMPT, GLOBAL_TREND_ANALYSIS_PROMPT, GAP_ANALYSIS_PROMPTS, LLM_ROUTER_PROMPT, RECOMMEND_LEARNING, RECOMMEND_STORYTELLING_PROMPT, FINAL_REPORT_PROMPT
-
-import pprint
-import json
-from langgraph.graph import StateGraph, END
-from langchain_openai import ChatOpenAI
-from langchain_community.tools import ArxivQueryRun, TavilySearchResults
+# Google & IPython (노트북/코랩용)
 from googleapiclient.discovery import build
 from IPython.display import display, Markdown
 
-# (AgentState, 모든 Pydantic 모델, 모든 노드 및 헬퍼 함수가 정의되어 있다고 가정합니다.)
+# Local Tools & Prompts
+from tools import analyze_video_content, search_naver_news, search_global_news, search_arxiv_papers, tavily_web_search, find_videos_with_transcripts, analyze_youtube_topic
+from prompts import INTENT_CLASSIFIER_PROMPT, USER_PROFILING_PROMPT, DOMESTIC_JOB_ANALYSIS_PROMPT, GLOBAL_TREND_ANALYSIS_PROMPT, GAP_ANALYSIS_PROMPTS, LLM_ROUTER_PROMPT, RECOMMEND_LEARNING, RECOMMEND_STORYTELLING_PROMPT, FINAL_REPORT_PROMPT
+
+os.environ['OPENAI_API_KEY'] = os.environ.get('ssu')
+os.environ['TAVILY_API_KEY'] = os.environ.get('tavily')
+os.environ['NAVER_CLIENT_ID'] = os.environ.get('naver_client_id')
+os.environ['NAVER_CLIENT_SECRET'] = os.environ.get('naver_client_secret')
+os.environ['NEWS_API_KEY'] = os.environ.get('news_api_key')
+
+def display_section(log: Dict[str, Any], key: str, title: str):
+    """
+    터미널에 결과를 출력하는 헬퍼 함수
+    """
+    message = log.get(key)
+    if message and str(message).strip():
+        print(f"\n{title}")
+        print(message)
 
 if __name__ == '__main__':
     # --- 1. 준비 단계 ---
@@ -90,7 +83,6 @@ if __name__ == '__main__':
     tavily_tool = TavilySearchResults(max_results=3)
     arxiv_tool = ArxivQueryRun()
 
-    # --- 2. LangGraph 워크플로우 생성 및 구성 ---
     # --- 2. LangGraph 워크플로우 생성 및 구성 ---
     workflow = StateGraph(AgentState)
 
@@ -148,7 +140,7 @@ if __name__ == '__main__':
     workflow.add_edge("combine_global", "gap_analysis")
     workflow.add_edge("gap_analysis", "router")
 
-    # [수정] 라우터의 결정에 따라 추천 노드로 분기
+    # 라우터의 결정에 따라 추천 노드로 분기
     workflow.add_conditional_edges(
         "router",
         lambda state: state["next_action"],
@@ -158,7 +150,7 @@ if __name__ == '__main__':
         }
     )
 
-    # [수정] 각 추천 노드가 실행된 후 그래프 종료
+    # 각 추천 노드가 실행된 후 그래프 종료
     workflow.add_edge("recommend_learning", END)
     workflow.add_edge("recommend_storytelling", END) # <-- 스토리텔링 노드도 종료로 연결
 
@@ -166,18 +158,7 @@ if __name__ == '__main__':
     print("✅ Workflow compiled successfully!")
 
     # --- 3. 테스트를 위한 초기 데이터 정의 ---
-    """
-    user_input = {
-        "목표 직무": "브랜드 마케터",
-        "희망 기업": ["CJ올리브영", "배달의민족", "무신사"],
-        "학년/학기": "2학년 1학기",
-        "전공 및 복수(부)전공": "경영학과",
-        "보유 기술 및 자격증": "MS Office (PPT, Excel) 활용 능력, 컴퓨터활용능력 1급, GTQ 1급",
-        "관련 경험 및 스펙" : "경영학회 활동 (마케팅 전략 분석 및 발표), 교내 마케팅 공모전 참가 경험",
-        "고민 또는 궁금한 점": "마케팅 직무에 관심이 있는데, 2학년 여름방학 동안 어떤 활동(인턴, 공모전 등)을 하는 게 좋을지 막막해요."
-    }
 
-    """
 
     user_input = {
         "목표 직무": "AI 모델 최적화 엔지니어 또는 경량화 연구원",
@@ -200,8 +181,8 @@ if __name__ == '__main__':
         "tools": {"tavily": tavily_tool, "arxiv": arxiv_tool}
     }
 
-    # --- 4. 그래프 실행 (백엔드 역할) ---
-    print("\n🚀 전체 에이전트 실행 시작 (백엔드 역할)")
+    # --- 4. 그래프 실행 ---
+    print("\n전체 에이전트 실행 시작")
     print("="*80)
     
     execution_log = {}
@@ -213,7 +194,7 @@ if __name__ == '__main__':
         node_output = state_update[node_name]
     
         # 개발자 확인용 내부 로그 출력
-        print(f"\n--- 📌 [노드: {node_name}] 실행 완료 (내부 데이터) ---")
+        print(f"\n--- [노드: {node_name}] 실행 완료 (내부 데이터) ---")
         pprint.pprint(node_output)
     
         # 실행 로그에 현재 노드의 모든 출력값을 업데이트
@@ -223,40 +204,25 @@ if __name__ == '__main__':
         final_state = state_update # <-- [추가] 매번 마지막 상태를 덮어쓰기
     
     print("\n\n✅ 전체 에이전트 실행 완료! 결과가 execution_log와 final_state에 저장되었습니다.")
-    print("다음 셀에서 최종 결과물을 확인하세요.")
 
-from IPython.display import display, Markdown
-from typing import Dict, Any
-
-def display_section(log: Dict[str, Any], key: str, title: str):
-    """
-    실행 로그(log)에서 특정 키(key)의 메시지를 찾아
-    지정된 제목(title)과 함께 Markdown 형식으로 출력하는 헬퍼 함수입니다.
-    """
-    message = log.get(key)
-    # 메시지가 존재하고, 공백 문자가 아닌 경우에만 출력합니다.
-    if message and str(message).strip():
-        display(Markdown(f"\n{title}"))
-        display(Markdown(message))
-
-# --- 최종 결과물 출력 (사용자 화면 렌더링) ---
-print("="*80)
-print("✨ 포트폴리오 분석 에이전트 최종 보고서 ✨")
-print("="*80)
-
-# 헬퍼 함수를 사용하여 각 분석 단계별 요약 메시지를 순서대로 출력합니다.
-display_section(execution_log, "streaming_intent", "### 🔍 분석 시작")
-display_section(execution_log, "streaming_user_profile", "### 👤 프로필 요약")
-display_section(execution_log, "streaming_domestic_analysis", "### 🇰🇷 국내 채용 시장 동향")
-display_section(execution_log, "streaming_global_analysis", "### 🌎 글로벌 기술 트렌드")
-display_section(execution_log, "streaming_gap_analysis", "### 📊 종합 역량 진단")
-display_section(execution_log, "streaming_route", "### 🧭 추천 방향 설정")
-
-# 최종 추천 보고서는 '학습' 또는 '스토리텔링' 중 하나만 존재하므로,
-# 둘 중 내용이 있는 하나를 찾아서 해당하는 제목과 함께 출력합니다.
-if execution_log.get("streaming_study_recommend"):
-    display_section(execution_log, "streaming_study_recommend", "### 📚 맞춤형 학습 로드맵")
-elif execution_log.get("streaming_story_recommend"):
-    display_section(execution_log, "streaming_story_recommend", "### 🎙️ 맞춤형 스토리텔링 가이드")
-
-print("="*80)
+    print("="*80)
+    print(" 포트폴리오 분석 에이전트 최종 보고서 ")
+    print("="*80)
+    
+    # 헬퍼 함수를 사용하여 각 분석 단계별 요약 메시지를 순서대로 출력합니다.
+    # (Markdown '###' 제거)
+    display_section(execution_log, "streaming_intent", " 분석 시작")
+    display_section(execution_log, "streaming_user_profile", " 프로필 요약")
+    display_section(execution_log, "streaming_domestic_analysis", "🇰🇷 국내 채용 시장 동향")
+    display_section(execution_log, "streaming_global_analysis", " 글로벌 기술 트렌드")
+    display_section(execution_log, "streaming_gap_analysis", " 종합 역량 진단")
+    display_section(execution_log, "streaming_route", " 추천 방향 설정")
+    
+    # 최종 추천 보고서는 '학습' 또는 '스토리텔링' 중 하나만 존재하므로,
+    # 둘 중 내용이 있는 하나를 찾아서 해당하는 제목과 함께 출력합니다.
+    if execution_log.get("streaming_study_recommend"):
+        display_section(execution_log, "streaming_study_recommend", "📚 맞춤형 학습 로드맵")
+    elif execution_log.get("streaming_story_recommend"):
+        display_section(execution_log, "streaming_story_recommend", "🎙️ 맞춤형 스토리텔링 가이드")
+    
+    print("="*80)

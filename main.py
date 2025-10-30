@@ -21,10 +21,6 @@ from pydantic import BaseModel, Field
 # LangGraph
 from langgraph.graph import StateGraph, END
 
-# Google & IPython (노트북/코랩용)
-from googleapiclient.discovery import build
-from IPython.display import display, Markdown
-
 # Local Tools & Prompts
 from tools import analyze_video_content, search_naver_news, search_global_news, search_arxiv_papers, tavily_web_search, find_videos_with_transcripts, analyze_youtube_topic
 from prompts import INTENT_CLASSIFIER_PROMPT, USER_PROFILING_PROMPT, DOMESTIC_JOB_ANALYSIS_PROMPT, GLOBAL_TREND_ANALYSIS_PROMPT, GAP_ANALYSIS_PROMPTS, LLM_ROUTER_PROMPT, RECOMMEND_LEARNING, RECOMMEND_STORYTELLING_PROMPT, FINAL_REPORT_PROMPT
@@ -203,7 +199,7 @@ if __name__ == '__main__':
     
         final_state = state_update # <-- [추가] 매번 마지막 상태를 덮어쓰기
     
-    print("\n\n✅ 전체 에이전트 실행 완료! 결과가 execution_log와 final_state에 저장되었습니다.")
+    print("\n\n 전체 에이전트 실행 완료! 결과가 execution_log와 final_state에 저장되었습니다.")
 
     print("="*80)
     print(" 포트폴리오 분석 에이전트 최종 보고서 ")
@@ -221,8 +217,8 @@ if __name__ == '__main__':
     # 최종 추천 보고서는 '학습' 또는 '스토리텔링' 중 하나만 존재하므로,
     # 둘 중 내용이 있는 하나를 찾아서 해당하는 제목과 함께 출력합니다.
     if execution_log.get("streaming_study_recommend"):
-        display_section(execution_log, "streaming_study_recommend", "📚 맞춤형 학습 로드맵")
+        display_section(execution_log, "streaming_study_recommend", " 맞춤형 학습 로드맵")
     elif execution_log.get("streaming_story_recommend"):
-        display_section(execution_log, "streaming_story_recommend", "🎙️ 맞춤형 스토리텔링 가이드")
+        display_section(execution_log, "streaming_story_recommend", " 맞춤형 스토리텔링 가이드")
     
     print("="*80)

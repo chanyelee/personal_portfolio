@@ -1,5 +1,3 @@
-!pip install -q openai==1.101.0 langchain==0.3.27 langchain-core==0.3.74 langchain-openai==0.3.30 langchain-community==0.3.27 pytube==15.0.0 tavily-python==0.7.11 youtube-search-python==1.6.6 langgraph==0.6.4 arxiv==2.2.0 pymupdf==1.26.3 youtube_transcript_api==1.2.2
-
 # Agent 기반 개인 맞춤형 취업 지원 플랫폼
 
 (2025년 8월 완료한 프로젝트 아카이브입니다.)
@@ -28,13 +26,47 @@ LangGraph를 기반으로 사용자의 프로필을 분석하여 맞춤형 포�
 * `TAVILY_API_KEY` (Tavily Search)
 * `NAVER_CLIENT_ID` (Naver Search)
 * `NAVER_CLIENT_SECRET` (Naver Search)
-* `NEWS_API_KEY` (NewsAPI.org 등 글로벌 뉴스 검색용)
+* `NEWS_API_KEY` (NewsAPI 등 글로벌 뉴스 검색용)
 
 ---
 
 ## 📁 프로젝트 구조 (Project Structure)
 
 이 리포지토리는 다음과 같은 파일들로 구성되어 있습니다.
+## 📈 프로젝트 아키텍처 (Architecture)
+
+본 프로젝트는 LangGraph를 기반으로 한 복잡한 비순환 그래프(DAG) 구조를 가집니다. 전체 흐름은 크게 **1) 분석 흐름 (Analysis Flow)**과 **2) 추천 흐름 (Recommendation Flow)**으로 나뉩니다.
+
+### 1. 분석 흐름 (Analysis Flow)
+사용자의 입력을 받아 시장과 트렌드를 분석하고 프로파일링하는 단계입니다.
+
+(이미지를 깃허브 리포지토리의 `images` 폴더에 업로드했다고 가정합니다. 경로는 실제 위치에 맞게 수정하세요.)
+![프로젝트 흐름도 1](images/image_a16b79.png)
+
+1.  **사용자 질문 파악 (Intent Classifier)**: 사용자의 초기 입력을 받아 '포트폴리오 분석' 의도인지, '관련 없음'인지 분류합니다. 관련 없는 질문일 경우, 그래프는 즉시 종료(END)됩니다.
+2.  **사용자 프로필 분석 (User Profiling)**: 사용자의 프로필(목표 직무, 경험 등)을 분석하고 요약합니다.
+3.  **국내 분석 (Domestic Analysis - Parallel)**: '사용자 프로필'을 기반으로 3가지 분석을 **병렬**로 실행합니다.
+    * `채용공고 분석 (analyze_postings)`
+    * `합격자 후기 분석 (analyze_reviews)`
+    * `현직자 인터뷰 분석 (analyze_interviews)`
+4.  **국내 분석 종합 (Combine Domestic)**: 3개의 병렬 분석 결과를 하나로 취합합니다.
+5.  **글로벌 트렌드 분석 (Global Trends - Parallel)**: '국내 분석' 결과를 기반으로 3가지 글로벌 트렌드 분석을 **병렬**로 실행합니다.
+    * `기술 트렌드 분석 (analyze_tech_trends)`
+    * `시장 트렌드 분석 (analyze_market_trends)`
+    * `글로벌 권위자 강연 분석 (analyze_leaders_vision)`
+6.  **글로벌 분석 종합 (Combine Global)**: 3개의 병렬 트렌드 분석 결과를 하나로 취합합니다.
+
+### 2. 추천 흐름 (Recommendation Flow)
+분석된 모든 정보를 바탕으로 사용자의 역량을 진단하고, 맞춤형 솔루션을 추천하는 단계입니다.
+
+![프로젝트 흐름도 2](images/image_a1bd33.png)
+
+1.  **사용자 역량 분석 (Gap Analysis)**: 1~6단계에서 수집된 모든 정보(`사용자 프로파일링`, `국내 분석 종합`, `글로벌 분석 종합`)를 종합하여 사용자의 현재 역량과 목표 간의 '차이(Gap)'를 진단합니다.
+2.  **추천 라우터 (Recommendation Router)**: 진단된 '차이'를 바탕으로, 사용자에게 '학습 로드맵'이 필요한지 '스토리텔링 가이드'가 필요한지 **조건부 분기**를 수행합니다.
+3.  **최종 추천 (Final Recommendation)**: 라우터의 결정에 따라 두 분기 중 하나가 실행됩니다.
+    * `학습 로드맵 추천 (recommend_learning)`
+    * `스토리텔링 추천 (recommend_storytelling)`
+4.  **종료 (END)**: 최종 추천안이 생성되면 그래프가 종료됩니다.
 
 1.  (선택) 가상 환경을 생성하고 활성화합니다.
 2.  필요한 라이브러리를 설치합니다. (`pip install -r requirements.txt` 또는 위 '주요 라이브러리' 참고)

@@ -31,8 +31,28 @@ LangGraph를 기반으로 사용자의 프로필을 분석하여 맞춤형 포�
 ---
 
 ## 📁 프로젝트 구조 (Project Structure)
-
 이 리포지토리는 다음과 같은 파일들로 구성되어 있습니다.
+
+.
+├── 📜 README.md
+│   └── (현재 파일: 프로젝트 설명서)
+│
+├── 🚀 main.py
+│   └── (메인 실행 파일: LangGraph 워크플로우를 정의하고 컴파일 및 실행)
+│
+├── ⚙️ report_generator.py
+│   └── (LangGraph의 모든 핵심 노드(Node) 함수들을 정의)
+│
+├── 🧠 prompts.py
+│   └── (report_generator.py의 노드들이 사용하는 LLM 프롬프트 템플릿 모음)
+│
+├── 🛠️ tools.py
+│   └── (report_generator.py의 노드들이 사용하는 도구(웹 검색, API 호출 등) 모음)
+│
+└──  requirements.txt
+    └── (프로젝트 실행에 필요한 라이브러리 목록)
+
+
 ## 📈 프로젝트 아키텍처 (Architecture)
 
 본 프로젝트는 LangGraph를 기반으로 한 복잡한 비순환 그래프(DAG) 구조를 가집니다. 전체 흐름은 크게 **1) 분석 흐름 (Analysis Flow)**과 **2) 추천 흐름 (Recommendation Flow)**으로 나뉩니다.

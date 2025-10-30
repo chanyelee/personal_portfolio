@@ -2,7 +2,7 @@
 
 > 💡 **Note: 이 리포지토리에 대하여**
 >
-> 본 리포지토리는 2025년 8월에 3주간 진행한 **[Personal-career/AGENT](https://github.com/Personal-career/AGENT)** 팀 프로젝트에서, **제가 단독으로 개발한 핵심 에이전트 모듈**(`report_generator.py`, `prompts.py`, `tools.py` 등)을 아카이빙한 **개인 포트폴리오**입니다.
+> 본 리포지토리는 2025년 8월에 3주간 진행한 **[Personal-career/AGENT](https://github.com/Personal-career)** 팀 프로젝트에서, **제가 단독으로 개발한 핵심 에이전트 모듈**(`report_generator.py`, `prompts.py`, `tools.py` 등)을 아카이빙한 **개인 포트폴리오**입니다.
 >
 > 전체 팀 프로젝트의 구조와 다른 팀원들의 기여도는 위 링크에서 확인하실 수 있습니다.
 
